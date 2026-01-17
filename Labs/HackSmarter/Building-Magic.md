@@ -2,7 +2,7 @@
 
 ### Scope and Objective
 
-Objective: As a penetration tester on the Hack Smarter Red Team, your objective is to achieve a full compromise of the Active Directory environment.
+Objective: As a penetration tester on the Hack Smarter Red Team, your aim is to achieve a full compromise of the Active Directory environment.
 
 Initial Access: A prior enumeration phase has yielded a leaked database containing user credentials (usernames and hashed passwords). This information will serve as your starting point for gaining initial access to the network.
 
@@ -10,8 +10,8 @@ Execution: Your task is to leverage the compromised credentials to escalate priv
 
 **Note to user:** To access the target machine, you must add the following entries to your /etc/hosts file:
     
-    `buildingmagic.local`
-    `dc01.buildingmagic.local`
+    buildingmagic.local
+    dc01.buildingmagic.local
     
 Leaked Database File:
 ```bash
