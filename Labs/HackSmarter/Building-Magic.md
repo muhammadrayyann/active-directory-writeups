@@ -128,7 +128,7 @@ Nmap done: 1 IP address (1 host up) scanned in 83.15 seconds
 
 ## Hash Cracking
 
-![image1.png]()
+![image1.png](bm-images/image1.png)
 
 Successful cracks:
 `lilronron` `shadowhex7`
