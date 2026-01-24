@@ -1,6 +1,6 @@
 # Building Magic (Hack Smarter Labs)
 
-![Certificate-of-Completion](/bm-images/building-magic_ad_challenge_certificate.png)
+![Certificate-of-Completion](/bm-images/building-magic_ad_challenge_certificate.jpg)
 
 ## Scope and Objective
 
