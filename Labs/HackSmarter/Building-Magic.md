@@ -1,5 +1,7 @@
 # Building Magic (Hack Smarter Labs)
 
+![Certificate-of-Completion](/bm-images/building-magic_ad_challenge_certificate.pdf)
+
 ## Scope and Objective
 
 **Objective:** As a penetration tester on the Hack Smarter Red Team, your aim is to achieve a full compromise of the Active Directory environment.
